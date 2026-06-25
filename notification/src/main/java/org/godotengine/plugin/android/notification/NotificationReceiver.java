@@ -70,14 +70,9 @@ public class NotificationReceiver extends BroadcastReceiver {
 				Resources resources = context.getResources();
 				@SuppressLint("DiscouragedApi") NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, channelId)
 						.setSmallIcon(resources.getIdentifier(smallIconName, ICON_RESOURCE_TYPE, context.getPackageName()))
-						/* TODO: large icon not working. It needs to be tested again in future versions.
-						.setLargeIcon(BitmapFactory.decodeResource(r, r.getIdentifier(LARGE_ICON_LABEL, LARGE_ICON_RESOURCE_TYPE, context.getPackageName())))
-						.setStyle(new NotificationCompat.BigPictureStyle()
-								.bigPicture(BitmapFactory.decodeResource(r, r.getIdentifier(LARGE_ICON_LABEL, LARGE_ICON_RESOURCE_TYPE, context.getPackageName())))
-								.bigLargeIcon(BitmapFactory.decodeResource(r, r.getIdentifier(LARGE_ICON_LABEL, LARGE_ICON_RESOURCE_TYPE, context.getPackageName()))))
-						 */
 						.setContentTitle(title)
 						.setContentText(content)
+						.setStyle(new NotificationCompat.BigTextStyle().bigText(content))
 						.setPriority(NotificationCompat.PRIORITY_DEFAULT)
 						.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 						.setContentIntent(pendingIntent)
