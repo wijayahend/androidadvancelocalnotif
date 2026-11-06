@@ -371,4 +371,59 @@ public class NotificationSchedulerPlugin extends GodotPlugin {
 		NotificationManagerCompat.from(context).cancel(notificationId);
 	}
 
+	/**
+	 * Updates the question pool for the Shiro home screen widget and refreshes active widgets.
+	 *
+	 * @param questionsJson JSON array string containing question objects
+	 */
+	@UsedByGodot
+	public void update_widget_questions(String questionsJson) {
+		Activity act = getActivity() != null ? getActivity() : this.activity;
+		if (act != null) {
+			org.godotengine.plugin.android.notification.widget.WidgetDataManager.saveQuestionsPool(act.getApplicationContext(), questionsJson);
+			org.godotengine.plugin.android.notification.widget.ShiroQuizWidgetProvider.updateAllWidgets(act.getApplicationContext());
+			Log.i(LOG_TAG, "update_widget_questions(): Widget question pool updated and widgets refreshed.");
+		} else {
+			Log.e(LOG_TAG, "update_widget_questions(): Unable to update widget because activity is null.");
+		}
+	}
+
+	@UsedByGodot
+	public int get_widget_count() {
+		Activity act = getActivity() != null ? getActivity() : this.activity;
+		if (act != null) {
+			try {
+				android.appwidget.AppWidgetManager manager = android.appwidget.AppWidgetManager.getInstance(act.getApplicationContext());
+				android.content.ComponentName component = new android.content.ComponentName(act.getApplicationContext(), org.godotengine.plugin.android.notification.widget.ShiroQuizWidgetProvider.class);
+				int[] widgetIds = manager.getAppWidgetIds(component);
+				return widgetIds != null ? widgetIds.length : 0;
+			} catch (Exception e) {
+				Log.e(LOG_TAG, "get_widget_count() failed: " + e.getMessage());
+			}
+		}
+		return 0;
+	}
+
+	@UsedByGodot
+	public boolean is_widget_installed() {
+		return get_widget_count() > 0;
+	}
+
+	@UsedByGodot
+	public boolean has_pending_widget_install() {
+		Activity act = getActivity() != null ? getActivity() : this.activity;
+		if (act != null) {
+			return org.godotengine.plugin.android.notification.widget.WidgetDataManager.hasPendingWidgetInstall(act.getApplicationContext());
+		}
+		return false;
+	}
+
+	@UsedByGodot
+	public void consume_widget_install_flag() {
+		Activity act = getActivity() != null ? getActivity() : this.activity;
+		if (act != null) {
+			org.godotengine.plugin.android.notification.widget.WidgetDataManager.consumePendingWidgetInstall(act.getApplicationContext());
+		}
+	}
+
 }

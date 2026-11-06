@@ -9,6 +9,21 @@
             android:name="org.godotengine.plugin.v2.${godotPluginName}"
             android:value="${godotPluginPackageName}.${godotPluginName}" />
 
+        <receiver
+            android:name="org.godotengine.plugin.android.notification.widget.ShiroQuizWidgetProvider"
+            android:label="@string/widget_quiz_title"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="org.godotengine.plugin.android.notification.widget.ACTION_ANSWER" />
+                <action android:name="org.godotengine.plugin.android.notification.widget.ACTION_NEXT" />
+                <action android:name="org.godotengine.plugin.android.notification.widget.ACTION_OPEN_APP" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/shiro_quiz_widget_info" />
+        </receiver>
+
     </application>
 
 </manifest>
