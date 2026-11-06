@@ -2,9 +2,9 @@
 <resources>
     <string name="widget_quiz_title">Shiro Daily Quiz</string>
     <string name="widget_quiz_description">Kuis harian interaktif dari materi belajar Shiro</string>
-    <string name="widget_btn_next">Soal Berikutnya ➔</string>
-    <string name="widget_btn_open_app">Buka Shiro 🚀</string>
-    <string name="widget_feedback_correct">Jawaban Benar! 🎉</string>
-    <string name="widget_feedback_wrong">Belum Tepat! ❌</string>
+    <string name="widget_btn_next">Soal Berikutnya</string>
+    <string name="widget_btn_open_app">Buka Shiro</string>
+    <string name="widget_feedback_correct">Jawaban Benar!</string>
+    <string name="widget_feedback_wrong">Belum Tepat!</string>
     <string name="widget_empty_prompt">Buka game Shiro untuk sinkronisasi soal baru!</string>
 </resources>

@@ -108,6 +108,9 @@ public class ShiroQuizWidgetProvider extends AppWidgetProvider {
             // Extract question text with multiple fallback keys
             String qText = question.optString("question", "");
             if (qText.isEmpty()) {
+                qText = question.optString("sentence_with_blank", "");
+            }
+            if (qText.isEmpty()) {
                 qText = question.optString("text", "");
             }
             if (qText.isEmpty()) {
@@ -119,6 +122,8 @@ public class ShiroQuizWidgetProvider extends AppWidgetProvider {
             if (qText.isEmpty()) {
                 qText = "Latihan kuis hari ini:";
             }
+
+            Log.i(TAG, "renderWidget: id=" + widgetId + " topic=" + topic + " qText=" + qText);
 
             String answer = question.optString("answer", "").trim();
             String rule = question.optString("rule", "").trim();
@@ -171,14 +176,14 @@ public class ShiroQuizWidgetProvider extends AppWidgetProvider {
                 boolean isCorrect = !answer.isEmpty() && selectedText.equalsIgnoreCase(answer);
 
                 if (isCorrect) {
-                    views.setTextViewText(R.id.tv_feedback_title, "Jawaban Benar! 🎉 (" + answer + ")");
+                    views.setTextViewText(R.id.tv_feedback_title, "Jawaban Benar! (" + answer + ")");
                     views.setTextColor(R.id.tv_feedback_title, 0xFF4CAF50);
                 } else {
-                    views.setTextViewText(R.id.tv_feedback_title, "Jawabanmu: " + selectedText + " • Kunci: " + answer + " ❌");
+                    views.setTextViewText(R.id.tv_feedback_title, "Jawabanmu: " + selectedText + " • Kunci: " + answer);
                     views.setTextColor(R.id.tv_feedback_title, 0xFFF44336);
                 }
 
-                String explanation = rule.isEmpty() ? "Buka Shiro untuk belajar lebih banyak!" : "💡 " + rule;
+                String explanation = rule.isEmpty() ? "Buka Shiro untuk belajar lebih banyak!" : rule;
                 views.setTextViewText(R.id.tv_rule, explanation);
 
                 // Button: Open App

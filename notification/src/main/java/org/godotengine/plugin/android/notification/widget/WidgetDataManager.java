@@ -37,14 +37,25 @@ public class WidgetDataManager {
         try {
             JSONArray arr = new JSONArray(jsonArrayString);
             if (arr.length() > 0) {
-                getPrefs(context).edit().putString(KEY_QUESTIONS_POOL, jsonArrayString).apply();
-                Log.d(TAG, "Saved questions pool successfully (" + arr.length() + " items).");
+                SharedPreferences prefs = getPrefs(context);
+                boolean wasEmpty = prefs.getString(KEY_QUESTIONS_POOL, "").isEmpty();
+                
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString(KEY_QUESTIONS_POOL, jsonArrayString);
 
-                // Ensure current index is within bounds of new pool
-                int curIdx = getPrefs(context).getInt(KEY_TODAY_QUESTION_INDEX, 0);
-                if (curIdx >= arr.length()) {
-                    getPrefs(context).edit().putInt(KEY_TODAY_QUESTION_INDEX, 0).apply();
+                int curIdx = prefs.getInt(KEY_TODAY_QUESTION_INDEX, 0);
+                if (curIdx >= arr.length() || wasEmpty) {
+                    editor.putInt(KEY_TODAY_QUESTION_INDEX, 0);
                 }
+
+                if (wasEmpty || prefs.getString(KEY_DAILY_DATE, "").isEmpty()) {
+                    editor.putString(KEY_DAILY_DATE, getTodayDateString());
+                    editor.putBoolean(KEY_TODAY_ANSWERED, false);
+                    editor.putInt(KEY_TODAY_SELECTED_OPT, -1);
+                }
+
+                editor.apply();
+                Log.d(TAG, "Saved questions pool successfully (" + arr.length() + " items).");
             }
         } catch (JSONException e) {
             Log.e(TAG, "Failed parsing questions JSON: " + e.getMessage());
@@ -54,13 +65,12 @@ public class WidgetDataManager {
     public static synchronized JSONArray getQuestionsPool(Context context) {
         String json = getPrefs(context).getString(KEY_QUESTIONS_POOL, null);
         if (json == null || json.trim().isEmpty() || json.equals("[]")) {
-            return getDefaultPool();
+            return new JSONArray();
         }
         try {
-            JSONArray arr = new JSONArray(json);
-            return arr.length() > 0 ? arr : getDefaultPool();
+            return new JSONArray(json);
         } catch (JSONException e) {
-            return getDefaultPool();
+            return new JSONArray();
         }
     }
 
@@ -128,62 +138,6 @@ public class WidgetDataManager {
     private static String getTodayDateString() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd", Locale.US);
         return sdf.format(new Date());
-    }
-
-    private static JSONArray getDefaultPool() {
-        JSONArray arr = new JSONArray();
-        try {
-            JSONObject q1 = new JSONObject();
-            q1.put("topic", "Grammar");
-            q1.put("question", "The first month of the year is ......");
-            JSONArray o1 = new JSONArray();
-            o1.put("August"); o1.put("January"); o1.put("March"); o1.put("May");
-            q1.put("options", o1);
-            q1.put("answer", "January");
-            q1.put("rule", "Ordinal numbers: first -> January, second -> February");
-            arr.put(q1);
-
-            JSONObject q2 = new JSONObject();
-            q2.put("topic", "Grammar");
-            q2.put("question", "She ___ to school every day.");
-            JSONArray o2 = new JSONArray();
-            o2.put("go"); o2.put("goes"); o2.put("going"); o2.put("gone");
-            q2.put("options", o2);
-            q2.put("answer", "goes");
-            q2.put("rule", "Simple Present: subjek he/she/it -> verb + s/es");
-            arr.put(q2);
-
-            JSONObject q3 = new JSONObject();
-            q3.put("topic", "Grammar");
-            q3.put("question", "___ you like coffee?");
-            JSONArray o3 = new JSONArray();
-            o3.put("Does"); o3.put("Do"); o3.put("Is"); o3.put("Are");
-            q3.put("options", o3);
-            q3.put("answer", "Do");
-            q3.put("rule", "Yes/No Question: Do/Does + subject + verb (base form)");
-            arr.put(q3);
-
-            JSONObject q4 = new JSONObject();
-            q4.put("topic", "Grammar");
-            q4.put("question", "They ___ football in the park yesterday.");
-            JSONArray o4 = new JSONArray();
-            o4.put("plays"); o4.put("play"); o4.put("played"); o4.put("playing");
-            q4.put("options", o4);
-            q4.put("answer", "played");
-            q4.put("rule", "Past Simple: verb-2 (played) untuk aksi di masa lalu.");
-            arr.put(q4);
-
-            JSONObject q5 = new JSONObject();
-            q5.put("topic", "Grammar");
-            q5.put("question", "I ___ never seen that movie before.");
-            JSONArray o5 = new JSONArray();
-            o5.put("has"); o5.put("have"); o5.put("had"); o5.put("having");
-            q5.put("options", o5);
-            q5.put("answer", "have");
-            q5.put("rule", "Present Perfect: subjek I/you/they/we -> have + V3.");
-            arr.put(q5);
-        } catch (Exception ignored) {}
-        return arr;
     }
 
     public static void setPendingWidgetInstall(Context context, boolean pending) {

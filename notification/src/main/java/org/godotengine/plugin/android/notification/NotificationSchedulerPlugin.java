@@ -380,6 +380,7 @@ public class NotificationSchedulerPlugin extends GodotPlugin {
 	public void update_widget_questions(String questionsJson) {
 		Activity act = getActivity() != null ? getActivity() : this.activity;
 		if (act != null) {
+			Log.i(LOG_TAG, "update_widget_questions() CALLED! Payload length: " + (questionsJson != null ? questionsJson.length() : 0));
 			org.godotengine.plugin.android.notification.widget.WidgetDataManager.saveQuestionsPool(act.getApplicationContext(), questionsJson);
 			org.godotengine.plugin.android.notification.widget.ShiroQuizWidgetProvider.updateAllWidgets(act.getApplicationContext());
 			Log.i(LOG_TAG, "update_widget_questions(): Widget question pool updated and widgets refreshed.");
