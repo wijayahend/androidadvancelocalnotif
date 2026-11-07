@@ -105,7 +105,8 @@
                     android:paddingStart="6dp"
                     android:paddingEnd="6dp"
                     android:ellipsize="end"
-                    android:maxLines="1"
+                    android:maxLines="2"
+                    android:lineSpacingMultiplier="0.9"
                     android:text="A"
                     android:textColor="#E2E8F0"
                     android:textSize="11sp" />
@@ -123,7 +124,8 @@
                     android:paddingStart="6dp"
                     android:paddingEnd="6dp"
                     android:ellipsize="end"
-                    android:maxLines="1"
+                    android:maxLines="2"
+                    android:lineSpacingMultiplier="0.9"
                     android:text="B"
                     android:textColor="#E2E8F0"
                     android:textSize="11sp" />
@@ -148,7 +150,8 @@
                     android:paddingStart="6dp"
                     android:paddingEnd="6dp"
                     android:ellipsize="end"
-                    android:maxLines="1"
+                    android:maxLines="2"
+                    android:lineSpacingMultiplier="0.9"
                     android:text="C"
                     android:textColor="#E2E8F0"
                     android:textSize="11sp" />
@@ -166,7 +169,8 @@
                     android:paddingStart="6dp"
                     android:paddingEnd="6dp"
                     android:ellipsize="end"
-                    android:maxLines="1"
+                    android:maxLines="2"
+                    android:lineSpacingMultiplier="0.9"
                     android:text="D"
                     android:textColor="#E2E8F0"
                     android:textSize="11sp" />

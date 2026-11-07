@@ -36,6 +36,7 @@ public class ShiroQuizWidgetProvider extends AppWidgetProvider {
     public void onEnabled(Context context) {
         super.onEnabled(context);
         Log.i(TAG, "Shiro Quiz Widget added to home screen!");
+        WidgetDataManager.resetAnsweredState(context);
         WidgetDataManager.setPendingWidgetInstall(context, true);
     }
 
@@ -43,6 +44,7 @@ public class ShiroQuizWidgetProvider extends AppWidgetProvider {
     public void onDisabled(Context context) {
         super.onDisabled(context);
         Log.i(TAG, "All Shiro Quiz Widgets removed from home screen.");
+        WidgetDataManager.resetAnsweredState(context);
     }
 
     @Override
@@ -143,6 +145,8 @@ public class ShiroQuizWidgetProvider extends AppWidgetProvider {
                 // Not answered yet: Show options, hide feedback
                 views.setViewVisibility(R.id.layout_options, View.VISIBLE);
                 views.setViewVisibility(R.id.layout_feedback, View.GONE);
+                views.setTextViewText(R.id.tv_feedback_title, "");
+                views.setTextViewText(R.id.tv_rule, "");
 
                 for (int i = 0; i < OPTION_BUTTON_IDS.length; i++) {
                     int btnId = OPTION_BUTTON_IDS[i];
@@ -150,6 +154,8 @@ public class ShiroQuizWidgetProvider extends AppWidgetProvider {
                         views.setViewVisibility(btnId, View.VISIBLE);
                         String optText = options.optString(i, "");
                         views.setTextViewText(btnId, OPTION_PREFIXES[i] + optText);
+                        float optTextSizeSp = (optText.contains(" / ") || optText.length() > 16) ? 9.5f : 11f;
+                        views.setTextViewTextSize(btnId, android.util.TypedValue.COMPLEX_UNIT_SP, optTextSizeSp);
                         views.setInt(btnId, "setBackgroundResource", R.drawable.bg_option_default);
 
                         Intent answerIntent = new Intent(context, ShiroQuizWidgetProvider.class);

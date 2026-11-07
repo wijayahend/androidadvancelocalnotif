@@ -24,10 +24,32 @@ public class WidgetDataManager {
     private static final String KEY_YESTERDAY_QUESTION_INDEX = "yesterday_q_idx";
     private static final String KEY_TODAY_ANSWERED = "today_answered";
     private static final String KEY_TODAY_SELECTED_OPT = "today_selected_opt";
+    private static final String KEY_ANSWERED_QUESTION_TEXT = "answered_q_text";
     private static final String KEY_WIDGET_PENDING_INSTALL = "widget_pending_install";
 
     private static SharedPreferences getPrefs(Context context) {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    }
+
+    public static String extractQuestionText(JSONObject question) {
+        if (question == null) return "";
+        String[] keys = {"question", "sentence_with_blank", "text", "sentence", "prompt"};
+        for (String k : keys) {
+            String val = question.optString(k, "").trim();
+            if (!val.isEmpty()) {
+                return val;
+            }
+        }
+        return "";
+    }
+
+    public static synchronized void resetAnsweredState(Context context) {
+        if (context == null) return;
+        getPrefs(context).edit()
+                .putBoolean(KEY_TODAY_ANSWERED, false)
+                .putInt(KEY_TODAY_SELECTED_OPT, -1)
+                .putString(KEY_ANSWERED_QUESTION_TEXT, "")
+                .apply();
     }
 
     public static synchronized void saveQuestionsPool(Context context, String jsonArrayString) {
@@ -38,24 +60,15 @@ public class WidgetDataManager {
             JSONArray arr = new JSONArray(jsonArrayString);
             if (arr.length() > 0) {
                 SharedPreferences prefs = getPrefs(context);
-                boolean wasEmpty = prefs.getString(KEY_QUESTIONS_POOL, "").isEmpty();
-                
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putString(KEY_QUESTIONS_POOL, jsonArrayString);
-
-                int curIdx = prefs.getInt(KEY_TODAY_QUESTION_INDEX, 0);
-                if (curIdx >= arr.length() || wasEmpty) {
-                    editor.putInt(KEY_TODAY_QUESTION_INDEX, 0);
-                }
-
-                if (wasEmpty || prefs.getString(KEY_DAILY_DATE, "").isEmpty()) {
-                    editor.putString(KEY_DAILY_DATE, getTodayDateString());
-                    editor.putBoolean(KEY_TODAY_ANSWERED, false);
-                    editor.putInt(KEY_TODAY_SELECTED_OPT, -1);
-                }
-
+                editor.putInt(KEY_TODAY_QUESTION_INDEX, 0);
+                editor.putString(KEY_DAILY_DATE, getTodayDateString());
+                editor.putBoolean(KEY_TODAY_ANSWERED, false);
+                editor.putInt(KEY_TODAY_SELECTED_OPT, -1);
+                editor.putString(KEY_ANSWERED_QUESTION_TEXT, "");
                 editor.apply();
-                Log.d(TAG, "Saved questions pool successfully (" + arr.length() + " items).");
+                Log.d(TAG, "Saved questions pool successfully (" + arr.length() + " items) and reset answered state.");
             }
         } catch (JSONException e) {
             Log.e(TAG, "Failed parsing questions JSON: " + e.getMessage());
@@ -96,6 +109,7 @@ public class WidgetDataManager {
                         .putInt(KEY_TODAY_QUESTION_INDEX, nextIdx)
                         .putBoolean(KEY_TODAY_ANSWERED, false)
                         .putInt(KEY_TODAY_SELECTED_OPT, -1)
+                        .putString(KEY_ANSWERED_QUESTION_TEXT, "")
                         .apply();
                 Log.d(TAG, "Daily rotation: New day " + today + ". Selected question index: " + nextIdx);
             }
@@ -121,7 +135,22 @@ public class WidgetDataManager {
 
     public static synchronized boolean isTodayAnswered(Context context) {
         checkDailyRotation(context);
-        return getPrefs(context).getBoolean(KEY_TODAY_ANSWERED, false);
+        SharedPreferences prefs = getPrefs(context);
+        if (!prefs.getBoolean(KEY_TODAY_ANSWERED, false)) {
+            return false;
+        }
+        JSONObject currentQ = getCurrentDailyQuestion(context);
+        String currentQText = extractQuestionText(currentQ);
+        String answeredQText = prefs.getString(KEY_ANSWERED_QUESTION_TEXT, "");
+        if (!currentQText.isEmpty() && !currentQText.equals(answeredQText)) {
+            prefs.edit()
+                    .putBoolean(KEY_TODAY_ANSWERED, false)
+                    .putInt(KEY_TODAY_SELECTED_OPT, -1)
+                    .putString(KEY_ANSWERED_QUESTION_TEXT, "")
+                    .apply();
+            return false;
+        }
+        return true;
     }
 
     public static synchronized int getTodaySelectedOption(Context context) {
@@ -129,9 +158,12 @@ public class WidgetDataManager {
     }
 
     public static synchronized void setTodayAnswered(Context context, int selectedIndex) {
+        JSONObject currentQ = getCurrentDailyQuestion(context);
+        String qText = extractQuestionText(currentQ);
         getPrefs(context).edit()
                 .putBoolean(KEY_TODAY_ANSWERED, true)
                 .putInt(KEY_TODAY_SELECTED_OPT, selectedIndex)
+                .putString(KEY_ANSWERED_QUESTION_TEXT, qText)
                 .apply();
     }
 
