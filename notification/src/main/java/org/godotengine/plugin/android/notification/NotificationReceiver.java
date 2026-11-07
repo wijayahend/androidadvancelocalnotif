@@ -7,6 +7,8 @@ package org.godotengine.plugin.android.notification;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -38,11 +40,34 @@ public class NotificationReceiver extends BroadcastReceiver {
 					"onReceive"));
 		} else if (intent.hasExtra(NotificationData.DATA_KEY_ID)) {
 			int notificationId = intent.getIntExtra(NotificationData.DATA_KEY_ID, 0);
+			try {
+				android.app.job.JobScheduler jobScheduler = (android.app.job.JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+				if (jobScheduler != null) {
+					jobScheduler.cancel(notificationId);
+				}
+			} catch (Exception ignored) {
+			}
 			String channelId = intent.getStringExtra(NotificationData.DATA_KEY_CHANNEL_ID);
+			if (channelId == null || channelId.isEmpty()) {
+				channelId = "shiro_reminders";
+			}
 			String title = intent.getStringExtra(NotificationData.DATA_KEY_TITLE);
 			String content = intent.getStringExtra(NotificationData.DATA_KEY_CONTENT);
 			String smallIconName = intent.getStringExtra(NotificationData.DATA_KEY_SMALL_ICON_NAME);
+			if (smallIconName == null || smallIconName.isEmpty()) {
+				smallIconName = "ic_default_notification";
+			}
 			int badgeCount = intent.getIntExtra(NotificationData.DATA_KEY_BADGE_COUNT, 0);
+
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+				NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+				if (nm != null && nm.getNotificationChannel(channelId) == null) {
+					NotificationChannel ch = new NotificationChannel(channelId, "Shiro Reminders", NotificationManager.IMPORTANCE_DEFAULT);
+					ch.setDescription("Daily learning reminders");
+					nm.createNotificationChannel(ch);
+					Log.i(LOG_TAG, "onReceive(): Auto-created missing notification channel: " + channelId);
+				}
+			}
 
 			Intent notificationActionIntent = new Intent(context, ResultActivity.class);
 			notificationActionIntent.putExtra(NotificationData.DATA_KEY_ID, notificationId);
@@ -59,17 +84,21 @@ public class NotificationReceiver extends BroadcastReceiver {
 
 			Intent onCancelIntent = new Intent(context, CancelNotificationReceiver.class);
 			onCancelIntent.putExtra(NotificationData.DATA_KEY_ID, notificationId);
-			PendingIntent onDismissPendingIntent = PendingIntent.getBroadcast(context, 0, onCancelIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+			PendingIntent onDismissPendingIntent = PendingIntent.getBroadcast(context, notificationId, onCancelIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
 			Log.i(LOG_TAG, String.format("%s():: received notification id:'%d' - channel id:%s - title:'%s' - content:'%s' - small icon name:'%s",
 					"onReceive", notificationId, channelId, title, content, smallIconName));
 
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-				PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notificationActionIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+				PendingIntent pendingIntent = PendingIntent.getActivity(context, notificationId, notificationActionIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
 				Resources resources = context.getResources();
-				@SuppressLint("DiscouragedApi") NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, channelId)
-						.setSmallIcon(resources.getIdentifier(smallIconName, ICON_RESOURCE_TYPE, context.getPackageName()))
+				@SuppressLint("DiscouragedApi") int smallIconId = resources.getIdentifier(smallIconName, ICON_RESOURCE_TYPE, context.getPackageName());
+				if (smallIconId == 0) {
+					smallIconId = android.R.drawable.ic_dialog_info;
+				}
+				NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, channelId)
+						.setSmallIcon(smallIconId)
 						.setContentTitle(title)
 						.setContentText(content)
 						.setStyle(new NotificationCompat.BigTextStyle().bigText(content))
@@ -87,6 +116,7 @@ public class NotificationReceiver extends BroadcastReceiver {
 						ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
 					Notification notification = notificationBuilder.build();
 					NotificationManagerCompat.from(context).notify(notificationId, notification);
+					Log.i(LOG_TAG, "onReceive(): Notification posted successfully for id=" + notificationId);
 				} else {
 					Log.w(LOG_TAG, String.format("%s():: unable to process notification as %s permission is not granted",
 							"onReceive", Manifest.permission.POST_NOTIFICATIONS));

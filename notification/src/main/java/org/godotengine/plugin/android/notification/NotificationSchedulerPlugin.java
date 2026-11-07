@@ -340,10 +340,60 @@ public class NotificationSchedulerPlugin extends GodotPlugin {
 	private void scheduleNotification(Activity activity, int notificationId, Intent intent, int delaySeconds) {
 		AlarmManager alarmManager = (AlarmManager) activity.getSystemService(ALARM_SERVICE);
 		long timeAfterDelay = calculateTimeAfterDelay(delaySeconds);
-		alarmManager.set(AlarmManager.RTC_WAKEUP, timeAfterDelay,
-				PendingIntent.getBroadcast(activity.getApplicationContext(), notificationId, intent,
-						PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
-		Log.i(LOG_TAG, String.format("Scheduled notification '%d' to be delivered at %d.", notificationId, timeAfterDelay));
+		PendingIntent pendingIntent = PendingIntent.getBroadcast(activity.getApplicationContext(), notificationId, intent,
+				PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+		try {
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+				if (alarmManager.canScheduleExactAlarms()) {
+					alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeAfterDelay, pendingIntent);
+				} else {
+					alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeAfterDelay, pendingIntent);
+				}
+			} else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+				alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeAfterDelay, pendingIntent);
+			} else {
+				alarmManager.setExact(AlarmManager.RTC_WAKEUP, timeAfterDelay, pendingIntent);
+			}
+		} catch (SecurityException e) {
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+				alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeAfterDelay, pendingIntent);
+			} else {
+				alarmManager.set(AlarmManager.RTC_WAKEUP, timeAfterDelay, pendingIntent);
+			}
+		}
+
+		// Also schedule via JobScheduler (survives OEM fast_freezer on Vivo/Oppo/Xiaomi)
+		try {
+			android.app.job.JobScheduler jobScheduler = (android.app.job.JobScheduler) activity.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+			if (jobScheduler != null) {
+				android.os.PersistableBundle extras = new android.os.PersistableBundle();
+				extras.putInt(NotificationData.DATA_KEY_ID, notificationId);
+				extras.putString(NotificationData.DATA_KEY_CHANNEL_ID, intent.getStringExtra(NotificationData.DATA_KEY_CHANNEL_ID));
+				extras.putString(NotificationData.DATA_KEY_TITLE, intent.getStringExtra(NotificationData.DATA_KEY_TITLE));
+				extras.putString(NotificationData.DATA_KEY_CONTENT, intent.getStringExtra(NotificationData.DATA_KEY_CONTENT));
+				extras.putString(NotificationData.DATA_KEY_SMALL_ICON_NAME, intent.getStringExtra(NotificationData.DATA_KEY_SMALL_ICON_NAME));
+				if (intent.hasExtra(NotificationData.DATA_KEY_DEEPLINK)) {
+					extras.putString(NotificationData.DATA_KEY_DEEPLINK, intent.getStringExtra(NotificationData.DATA_KEY_DEEPLINK));
+				}
+				if (intent.hasExtra(NotificationData.OPTION_KEY_RESTART_APP)) {
+					extras.putInt(NotificationData.OPTION_KEY_RESTART_APP, 1);
+				}
+				if (intent.hasExtra(NotificationData.DATA_KEY_BADGE_COUNT)) {
+					extras.putInt(NotificationData.DATA_KEY_BADGE_COUNT, intent.getIntExtra(NotificationData.DATA_KEY_BADGE_COUNT, 0));
+				}
+				long delayMs = Math.max(1000L, delaySeconds * 1000L);
+				android.content.ComponentName serviceComponent = new android.content.ComponentName(activity.getApplicationContext(), NotificationJobService.class);
+				android.app.job.JobInfo.Builder jobBuilder = new android.app.job.JobInfo.Builder(notificationId, serviceComponent)
+						.setMinimumLatency(delayMs)
+						.setOverrideDeadline(delayMs + 2000L)
+						.setExtras(extras);
+				jobScheduler.schedule(jobBuilder.build());
+			}
+		} catch (Exception e) {
+			Log.e(LOG_TAG, "Failed to schedule JobScheduler notification: " + e.getMessage());
+		}
+
+		Log.i(LOG_TAG, String.format("Scheduled notification '%d' to be delivered at %d (in %ds).", notificationId, timeAfterDelay, delaySeconds));
 	}
 
 	@RequiresApi(api = Build.VERSION_CODES.N)
@@ -366,6 +416,15 @@ public class NotificationSchedulerPlugin extends GodotPlugin {
 		intent.putExtra(NotificationData.DATA_KEY_ID, notificationId);
 		alarmManager.cancel(PendingIntent.getBroadcast(activity.getApplicationContext(), notificationId, intent,
 				PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+
+		// cancel job scheduler
+		try {
+			android.app.job.JobScheduler jobScheduler = (android.app.job.JobScheduler) activity.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+			if (jobScheduler != null) {
+				jobScheduler.cancel(notificationId);
+			}
+		} catch (Exception ignored) {
+		}
 
 		// cancel notification
 		NotificationManagerCompat.from(context).cancel(notificationId);

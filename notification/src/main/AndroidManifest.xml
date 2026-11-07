@@ -2,12 +2,39 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application>
 
         <meta-data
             android:name="org.godotengine.plugin.v2.${godotPluginName}"
             android:value="${godotPluginPackageName}.${godotPluginName}" />
+
+        <activity
+            android:name="org.godotengine.plugin.android.notification.ResultActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:noHistory="true"
+            android:taskAffinity="" />
+
+        <receiver
+            android:name="org.godotengine.plugin.android.notification.NotificationReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:process=":godot_notification_receiver" />
+
+        <receiver
+            android:name="org.godotengine.plugin.android.notification.CancelNotificationReceiver"
+            android:enabled="true"
+            android:exported="true" />
+
+        <service
+            android:name="org.godotengine.plugin.android.notification.NotificationJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:enabled="true"
+            android:exported="true" />
 
         <receiver
             android:name="org.godotengine.plugin.android.notification.widget.ShiroQuizWidgetProvider"
