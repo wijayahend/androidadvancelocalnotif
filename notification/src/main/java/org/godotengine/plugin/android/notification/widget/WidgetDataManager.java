@@ -62,12 +62,6 @@ public class WidgetDataManager {
             if (arr.length() > 0) {
                 SharedPreferences prefs = getPrefs(context);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putString(KEY_QUESTIONS_POOL, jsonArrayString);
-                editor.putInt(KEY_TODAY_QUESTION_INDEX, 0);
-                editor.putString(KEY_DAILY_DATE, getTodayDateString());
-                editor.putBoolean(KEY_TODAY_ANSWERED, false);
-                editor.putInt(KEY_TODAY_SELECTED_OPT, -1);
-                editor.putString(KEY_ANSWERED_QUESTION_TEXT, "");
                 JSONObject firstObj = arr.optJSONObject(0);
                 if (firstObj != null && firstObj.has("ui_labels")) {
                     JSONObject labels = firstObj.optJSONObject("ui_labels");
@@ -75,6 +69,17 @@ public class WidgetDataManager {
                         editor.putString(KEY_UI_LABELS, labels.toString());
                     }
                 }
+                if (firstObj != null && firstObj.optBoolean("_only_ui_labels", false)) {
+                    editor.apply();
+                    Log.d(TAG, "Updated widget UI labels only.");
+                    return;
+                }
+                editor.putString(KEY_QUESTIONS_POOL, jsonArrayString);
+                editor.putInt(KEY_TODAY_QUESTION_INDEX, 0);
+                editor.putString(KEY_DAILY_DATE, getTodayDateString());
+                editor.putBoolean(KEY_TODAY_ANSWERED, false);
+                editor.putInt(KEY_TODAY_SELECTED_OPT, -1);
+                editor.putString(KEY_ANSWERED_QUESTION_TEXT, "");
                 editor.apply();
                 Log.d(TAG, "Saved questions pool successfully (" + arr.length() + " items) and reset answered state.");
             }
