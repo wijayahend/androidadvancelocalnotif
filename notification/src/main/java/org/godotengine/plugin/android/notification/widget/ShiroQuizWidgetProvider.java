@@ -88,6 +88,18 @@ public class ShiroQuizWidgetProvider extends AppWidgetProvider {
     private static void renderWidget(Context context, AppWidgetManager appWidgetManager, int widgetId) {
         try {
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.shiro_quiz_widget);
+            JSONObject uiLabels = WidgetDataManager.getUiLabels(context);
+            String openBtnText = uiLabels.optString("open_btn", context.getString(R.string.widget_btn_open_app));
+            String emptyPromptText = uiLabels.optString("empty_prompt", context.getString(R.string.widget_empty_prompt));
+            String defaultRuleText = uiLabels.optString("default_rule", "Open Shiro to learn more!");
+            String correctTitleText = uiLabels.optString("correct_title", context.getString(R.string.widget_feedback_correct));
+            String wrongFmtText = uiLabels.optString("wrong_fmt", "Your answer: %s • Key: %s");
+            String dailyBadgeText = uiLabels.optString("daily_badge", "Daily");
+
+            views.setTextViewText(R.id.tv_daily_badge, dailyBadgeText);
+            views.setTextViewText(R.id.tv_empty_prompt, emptyPromptText);
+            views.setTextViewText(R.id.btn_empty_open, openBtnText);
+            views.setTextViewText(R.id.btn_open_app, openBtnText);
 
             JSONObject question = WidgetDataManager.getCurrentDailyQuestion(context);
 
@@ -182,14 +194,20 @@ public class ShiroQuizWidgetProvider extends AppWidgetProvider {
                 boolean isCorrect = !answer.isEmpty() && selectedText.equalsIgnoreCase(answer);
 
                 if (isCorrect) {
-                    views.setTextViewText(R.id.tv_feedback_title, "Jawaban Benar! (" + answer + ")");
+                    views.setTextViewText(R.id.tv_feedback_title, correctTitleText + " (" + answer + ")");
                     views.setTextColor(R.id.tv_feedback_title, 0xFF4CAF50);
                 } else {
-                    views.setTextViewText(R.id.tv_feedback_title, "Jawabanmu: " + selectedText + " • Kunci: " + answer);
+                    String wrongText;
+                    try {
+                        wrongText = String.format(wrongFmtText, selectedText, answer);
+                    } catch (Exception e) {
+                        wrongText = selectedText + " → " + answer;
+                    }
+                    views.setTextViewText(R.id.tv_feedback_title, wrongText);
                     views.setTextColor(R.id.tv_feedback_title, 0xFFF44336);
                 }
 
-                String explanation = rule.isEmpty() ? "Buka Shiro untuk belajar lebih banyak!" : rule;
+                String explanation = rule.isEmpty() ? defaultRuleText : rule;
                 views.setTextViewText(R.id.tv_rule, explanation);
 
                 // Button: Open App

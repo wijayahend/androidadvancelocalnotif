@@ -26,6 +26,7 @@ public class WidgetDataManager {
     private static final String KEY_TODAY_SELECTED_OPT = "today_selected_opt";
     private static final String KEY_ANSWERED_QUESTION_TEXT = "answered_q_text";
     private static final String KEY_WIDGET_PENDING_INSTALL = "widget_pending_install";
+    private static final String KEY_UI_LABELS = "ui_labels";
 
     private static SharedPreferences getPrefs(Context context) {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -67,12 +68,30 @@ public class WidgetDataManager {
                 editor.putBoolean(KEY_TODAY_ANSWERED, false);
                 editor.putInt(KEY_TODAY_SELECTED_OPT, -1);
                 editor.putString(KEY_ANSWERED_QUESTION_TEXT, "");
+                JSONObject firstObj = arr.optJSONObject(0);
+                if (firstObj != null && firstObj.has("ui_labels")) {
+                    JSONObject labels = firstObj.optJSONObject("ui_labels");
+                    if (labels != null) {
+                        editor.putString(KEY_UI_LABELS, labels.toString());
+                    }
+                }
                 editor.apply();
                 Log.d(TAG, "Saved questions pool successfully (" + arr.length() + " items) and reset answered state.");
             }
         } catch (JSONException e) {
             Log.e(TAG, "Failed parsing questions JSON: " + e.getMessage());
         }
+    }
+
+    public static synchronized JSONObject getUiLabels(Context context) {
+        String raw = getPrefs(context).getString(KEY_UI_LABELS, null);
+        if (raw != null && !raw.isEmpty()) {
+            try {
+                return new JSONObject(raw);
+            } catch (JSONException ignored) {
+            }
+        }
+        return new JSONObject();
     }
 
     public static synchronized JSONArray getQuestionsPool(Context context) {
